@@ -8,10 +8,13 @@ import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.group.FlxGroup;
 import flixel.text.FlxText;
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
 import flixel.util.FlxColor;
 import flixel.util.FlxSpriteUtil;
+import flixel.util.FlxTimer;
 import org.wildrabbit.toothdecay.world.Grid;
 import org.wildrabbit.toothdecay.world.Player;
 
@@ -49,7 +52,9 @@ class PlayState extends FlxState
 		
 		player = new Player(grid);
 		gameGroup.add(player);
-		player.setTile(0,4);
+		player.setTile(0, 4);
+		player.centerToTile();
+		player.deadSignal.addOnce(onPlayerDied);
 		
 		hudGroup = new FlxGroup();
 		add(hudGroup);
@@ -63,7 +68,7 @@ class PlayState extends FlxState
 		
 		gridCamera = new FlxCamera(64, 0, Std.int(grid.width), FlxG.height, 1);
 		gridCamera.bgColor = bgColor;
-		gridCamera.follow(player, FlxCameraFollowStyle.LOCKON, 5);
+		gridCamera.follow(player, FlxCameraFollowStyle.LOCKON, 0.15);
 		gridCamera.setScrollBounds(0, grid.width, 0, grid.height);
 		hudCamera = new FlxCamera(0,0,FlxG.width, FlxG.height,1);
 		hudCamera.bgColor = bgColor;
@@ -75,6 +80,8 @@ class PlayState extends FlxState
 				
 		setGroupCamera(gameGroup, gridCamera);
 		setGroupCamera(hudGroup, hudCamera);
+		
+		FlxG.watch.add(gridCamera, 'followLerp');
 	}
 
 	/**
@@ -100,7 +107,7 @@ class PlayState extends FlxState
 		
 		if (FlxG.keys.pressed.ESCAPE)
 		{
-			FlxG.switchState(new MenuState());
+			FlxG.resetState();
 		}
 
 		FlxG.collide(grid, player);
@@ -114,5 +121,14 @@ class PlayState extends FlxState
 			obj.camera = cam;
 		};
 		group.forEachExists(func);
+	}
+	
+	private function onPlayerDied():Void
+	{
+		var reset = function (t:FlxTween):Void
+		{
+			new FlxTimer().start(3, function(t:FlxTimer):Void { FlxG.resetGame(); } );
+		}
+		FlxTween.tween(player, { "alpha":0 }, 0.5, { type:FlxTween.ONESHOT, onComplete:reset, ease:FlxEase.sineInOut } );
 	}
 }
