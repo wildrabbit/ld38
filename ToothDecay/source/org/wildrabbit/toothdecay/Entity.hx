@@ -17,6 +17,7 @@ class Entity extends FlxSprite
 {
 	private var gridRef:Grid;
 	public var deadSignal: FlxTypedSignal<Entity->Void>;
+	public var reachedBottom:FlxTypedSignal<Entity->Void>;
 	
 	private var fallSpeed:Float = 500;
 	private var gravity:Float = 500;
@@ -31,6 +32,7 @@ class Entity extends FlxSprite
 		
 		acceleration.y = 800;
 		deadSignal = new FlxTypedSignal<Entity->Void>();
+		reachedBottom = new FlxTypedSignal<Entity->Void>();
 	}
 	
 	override public function update(dt:Float):Void
@@ -60,8 +62,8 @@ class Entity extends FlxSprite
 
 	public function keepBounds():Void
 	{
-		x = FlxMath.bound(x, 0, gridRef.width - width);
-		y = FlxMath.bound(y, 0, FlxG.worldBounds.height - height);
+		x = FlxMath.bound(x, gridRef.x, gridRef.x + gridRef.width - width);
+		y = FlxMath.bound(y, gridRef.y, gridRef.y + FlxG.worldBounds.height - height);
 		syncTileCoords();
 	}
 	
@@ -78,7 +80,11 @@ class Entity extends FlxSprite
 		tileRow = Std.int(p.x);
 		tileCol = Std.int(p.y);
 		p.putWeak();
-
+		
+		if (tileRow == gridRef.heightInTiles - 1)
+		{
+			reachedBottom.dispatch(this);
+		}
 	}
 	public function isGrounded():Bool
 	{

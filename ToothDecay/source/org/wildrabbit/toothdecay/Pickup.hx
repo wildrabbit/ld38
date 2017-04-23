@@ -16,9 +16,12 @@ class Pickup extends Entity
 	public var type:Int = 0;
 	public var amount:Int = 10;
 		
-	public function new(grid:Grid, startRow:Int, startCol:Int) 
+	public function new(grid:Grid, t:Int, a:Int, startRow:Int, startCol:Int) 
 	{
 		super(grid);
+		type = t;
+		amount = a;
+		
 		loadGraphic("assets/images/SUGAR.png");		
 		
 		setTile(startRow, startCol);

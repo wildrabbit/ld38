@@ -7,6 +7,7 @@ import flixel.tweens.FlxTween;
 import flixel.util.FlxSignal;
 import flixel.util.FlxTimer;
 import org.wildrabbit.toothdecay.Pickup;
+import org.wildrabbit.toothdecay.PlayState;
 
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -22,11 +23,11 @@ import flixel.tile.FlxBaseTilemap;
  */
 class Grid extends FlxTilemap
 {
-
-	public function new() 
+	private var parent:PlayState;
+	public function new(Parent:PlayState) 
 	{
 		super();
-		
+		parent = Parent;
 	}
 	
 	private static inline var TILE_WIDTH:Int = 64;
@@ -47,14 +48,13 @@ class Grid extends FlxTilemap
 	public static inline var TILE_RED_REPL:Int = 9;
 	public static inline var TILE_HARD_REPL:Int = 10;
 	
+	public static inline var TILE_ENDLEVEL:Int = 11;
 	
 	//
 	private static inline var TILE_NEXTLEVEL:Int = 3;
 
-	private var gridWidth:Int = 9;
-	private var gridHeight:Int = 20;
-	public  var tileWidth:Int = 64;
-	public var tileHeight:Int = 64;
+	public  var tileWidth:Int = TILE_WIDTH;
+	public var tileHeight:Int = TILE_HEIGHT;
 	
 	private var camRef:FlxPoint = FlxPoint.get(0, 0);
 	
@@ -63,32 +63,11 @@ class Grid extends FlxTilemap
 	
 	public var tileDropped:FlxTypedSignal<Int->Int->Void> = new FlxTypedSignal<Int->Int->Void>();
 	
-	public function init():Void 
+	public var clusterRebuildNeeded:Bool = false;
+	
+	public function init(level:Array<Int>, w:Int, h: Int):Void 
 	{		
-		var array:Array<Int> = 
-		[
-			0, 0, 0, 0, 0, 0, 0, 0,0,
-			1, 4, 0, 0, 2, 2, 1, 2,3,
-			5, 2, 2, 3, 4, 1, 0, 4,3,
-			1, 3, 1, 3, 2, 2, 1, 4,3,
-			4, 2, 3, 3, 4, 1, 0, 4,1,
-			2, 2, 2, 1, 5, 4, 2, 3,2,
-			0, 0, 5, 0, 4, 1, 0, 4,2,
-			1, 2, 2, 3, 4, 1, 0, 0,0,
-			1, 2, 2, 3, 4, 1, 0, 4,5,
-			1, 4, 0, 2, 4, 1, 0, 4,5,
-			3, 4, 0, 1, 2, 2, 1, 2,3,
-			5, 2, 2, 3, 4, 1, 0, 4,3,
-			1, 3, 1, 3, 2, 2, 1, 4,3,
-			4, 2, 3, 3, 4, 1, 0, 4,1,
-			2, 2, 2, 1, 5, 4, 2, 3,2,
-			0, 0, 5, 0, 4, 1, 0, 4,2,
-			1, 2, 2, 3, 4, 1, 0, 0,0,
-			1, 2, 2, 3, 4, 1, 0, 4,5,
-			1, 2, 2, 3, 4, 1, 0, 4,5,
-			1, 2, 2, 3, 4, 1, 0, 4,5
-		];
-		loadMapFromArray(array, gridWidth, gridHeight, "assets/images/tiles_00.png", TILE_WIDTH, TILE_HEIGHT, FlxTilemapAutoTiling.OFF, 0, 1, 1);
+		loadMapFromArray(level, w, h, "assets/images/tiles_00.png", TILE_WIDTH, TILE_HEIGHT, FlxTilemapAutoTiling.OFF, 0, 1, 1);
 		setTileProperties(1, FlxObject.ANY);
 		setTileProperties(2, FlxObject.ANY);
 		setTileProperties(3, FlxObject.ANY);
@@ -98,7 +77,8 @@ class Grid extends FlxTilemap
 		setTileProperties(7, FlxObject.ANY);
 		setTileProperties(8, FlxObject.ANY);
 		setTileProperties(9, FlxObject.ANY);
-		setTileProperties(10, FlxObject.ANY);
+		setTileProperties(10, FlxObject.ANY);		
+		clusterRebuildNeeded = true;
 	}
 	
 	public function getGridCoords(x:Float, y:Float, p:FlxPoint):Void
@@ -134,6 +114,7 @@ class Grid extends FlxTilemap
 				}
 			}			
 		}
+		clusterRebuildNeeded = true;
 		// TODO: Convert to sprite for destruction animation.
 		return null;
 	}
@@ -147,9 +128,14 @@ class Grid extends FlxTilemap
 	override public function update(dt:Float):Void
 	{
 		super.update(dt);	
-		updateSprites(dt);
+		
+		if (clusterRebuildNeeded)
+		{
+			clusterfuck(parent.pickupList);
+			clusterRebuildNeeded = false;
+		}
 	}
-	public function clusterfuck(playerRow:Int, playerCol:Int, pickups:Array<Pickup>):Void
+	public function clusterfuck(pickups:Array<Pickup>):Void
 	{
 		clusters = new Map<Int,Cluster>();
 		labels.splice(0, labels.length);
@@ -288,7 +274,7 @@ class Grid extends FlxTilemap
 			row--;		
 		}
 		
-		checkConnections();
+		//checkConnections();
 	}
 	
 	public function checkConnections():Void
@@ -393,5 +379,9 @@ class Grid extends FlxTilemap
 			}
 		}
 	}
-	
+		
+	override private function autoTile(Index:Int):Void 
+	{
+		super.autoTile(Index);
+	}	
 }

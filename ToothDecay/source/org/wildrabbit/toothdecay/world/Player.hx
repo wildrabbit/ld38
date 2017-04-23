@@ -33,6 +33,18 @@ class Player extends Entity
 	
 	public var won:Bool = false;
 	
+	public function setGrid(leGrid:Grid, row:Int, col:Int):Void
+	{
+		if (gridRef != null)
+		{
+			gridRef.tileDropped.remove(onTileDropped);
+		}
+		gridRef = leGrid;
+		gridRef.tileDropped.add(onTileDropped);
+		
+		setTile(row, col);
+	}
+	
 	public function new(grid:Grid, startRow:Int, startCol:Int) 
 	{
 		super(grid);
@@ -145,7 +157,7 @@ class Player extends Entity
 					}
 					else if (holdLeft >= 0 && now - holdLeft > 500)
 					{
-						FlxG.log.add("Climb left!");
+						
 						setTile(tileRow - 1, tileCol - 1, true);
 						holdLeft = -1;						
 					}
