@@ -67,6 +67,18 @@ class Player extends Entity
 
 		drillSound = new FlxSound();
 		drillSound.loadEmbedded(AssetPaths.drill__wav);
+		
+		grid.tileDropped.add(onTileDropped);
+	}
+	
+	public function onTileDropped(row:Int, col:Int):Void
+	{
+		if (row == tileRow && col == tileCol)
+		{
+			stamina = 0;
+			alive = false;
+			deadSignal.dispatch(this);
+		}
 	}
 	
 	public function onAnimationFinished(str:String):Void

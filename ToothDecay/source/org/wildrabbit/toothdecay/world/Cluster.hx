@@ -1,4 +1,9 @@
 package org.wildrabbit.toothdecay.world;
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.input.FlxPointer;
+import flixel.math.FlxPoint;
 
 /**
  * ...
@@ -8,7 +13,7 @@ class Cluster
 {
 	public var label:Int;
 	public var type:Int = Grid.TILE_GAP;
-	public var indexes:List<Int> = new List<Int>();
+	public var indexes:Array<Int> = new Array<Int>();
 	public var connected:Bool = false;
 	
 	public function new() 
@@ -19,4 +24,5 @@ class Cluster
 	{
 		return 'Label: $label, Type: $type, Indexes: $indexes, Connected: $connected';
 	}
+
  }

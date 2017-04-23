@@ -28,6 +28,8 @@ class PlayState extends FlxState
 	var player:Player;
 	
 	var pickups:FlxTypedGroup<Pickup>;//
+	var pickupList:Array<Pickup>;
+	var specialTiles:FlxTypedGroup<FlxSprite>;
 	
 	var gameGroup:FlxGroup;
 	var hudGroup:FlxGroup;
@@ -56,15 +58,22 @@ class PlayState extends FlxState
 		gameGroup.add(grid);
 		
 		player = new Player(grid, 0, 4);
-		gameGroup.add(player);
 		player.deadSignal.addOnce(onPlayerDied);
 		
 		pickups = new FlxTypedGroup<Pickup>();
+		pickupList = new Array<Pickup>();
 		var pick:Pickup = new Pickup(grid, 10, 2);
 		pick.deadSignal.add(onPickupTaken);
 		pickups.add(pick);
-		
+		pickupList.push(pick);
 		gameGroup.add(pickups);
+		
+		specialTiles = new FlxTypedGroup<FlxSprite>();
+		gameGroup.add(specialTiles);
+		gameGroup.add(player);
+		
+		grid.root = specialTiles;
+	
 		
 		hudGroup = new FlxGroup();
 		add(hudGroup);
@@ -129,7 +138,10 @@ class PlayState extends FlxState
 		FlxG.collide(grid, pickups);
 		FlxG.collide(grid, player);
 		FlxG.overlap(player, pickups, player.onPickup);
-		grid.clusterfuck(player.tileRow, player.tileCol);
+		if (grid.state == Grid.STATE_NONE)
+		{
+			grid.clusterfuck(player.tileRow, player.tileCol, pickupList);			
+		}
 		
 		player.keepBounds();
 		
@@ -175,6 +187,7 @@ class PlayState extends FlxState
 		var removePickup = function (t:FlxTween):Void
 		{
 			pickups.remove(cast e);
+			pickupList.remove(cast e);
 			e.destroy();
 		}
 		FlxTween.tween(e, { "alpha":0 }, 0.2, { type:FlxTween.ONESHOT, onComplete:removePickup} );
