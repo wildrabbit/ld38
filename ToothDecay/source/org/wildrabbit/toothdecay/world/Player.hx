@@ -7,22 +7,18 @@ import flixel.input.keyboard.FlxKeyList;
 import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
 import flixel.system.FlxAssets.FlxGraphicAsset;
+import flixel.system.FlxSound;
 import flixel.util.FlxSignal;
+import org.wildrabbit.toothdecay.Entity;
+import org.wildrabbit.toothdecay.Pickup;
 
 /**
  * ...
  * @author ith1ldin
  */
-class Player extends FlxSprite
+class Player extends Entity
 {
 	private var speed:Float = 200;
-	private var fallSpeed:Float = 500;
-	private var gravity:Float = 500;
-	
-	private var gridRef:Grid = null;
-	
-	private var tileCol:Int = 0;
-	private var tileRow:Int = 0;
 	
 	private var holdLeft:Float = -1;
 	private var holdRight:Float = -1;
@@ -30,15 +26,16 @@ class Player extends FlxSprite
 	private var touchingRight:Bool = false;
 	
 	private var initialStamina:Float = 100;
-	private var stamina:Float = 0;
+	public var stamina:Float = 0;
 	private var staminaDepletionRate:Float = 2;
 	
-	public var deadSignal: FlxSignal;
+	private var drillSound: FlxSound;
 	
-	public function new(grid:Grid) 
+	public var won:Bool = false;
+	
+	public function new(grid:Grid, startRow:Int, startCol:Int) 
 	{
-		super(0, 0);
-		gridRef = grid;
+		super(grid);
 		
 		loadGraphic("assets/images/player.png", true,64, 64);
 		animation.add("idle", [0]);
@@ -48,14 +45,12 @@ class Player extends FlxSprite
 		animation.play("idle");
 		animation.finishCallback = onAnimationFinished;
 		
-		//moves = false;
-		
 		setSize(38, 54);
 		offset.set(13, 5);
 		
 		drag.set(1600, 0);
 		maxVelocity.set(speed, 500);
-		acceleration.y = 800;
+
 		velocity.set();
 		
 		FlxG.watch.add(this, "tileRow");
@@ -66,7 +61,12 @@ class Player extends FlxSprite
 		setFacingFlip(FlxObject.RIGHT, false, false);
 		
 		stamina = initialStamina;
-		deadSignal = new FlxSignal();
+
+		setTile(startRow, startCol);
+		centerToTile();
+
+		drillSound = new FlxSound();
+		drillSound.loadEmbedded(AssetPaths.drill__wav);
 	}
 	
 	public function onAnimationFinished(str:String):Void
@@ -77,24 +77,12 @@ class Player extends FlxSprite
 		}
 	}
 	
-	override public function setPosition(X:Float = 0, Y:Float = 0):Void
-	{
-		super.setPosition(X, Y);
-		syncTileCoords();
-	}
 	
-	private function syncTileCoords():Void
-	{
-		var p:FlxPoint = FlxPoint.weak();
-		gridRef.getGridCoords(x + offset.x + width/2, y + offset.y + height/2, p);
-		tileRow = Std.int(p.x);
-		tileCol = Std.int(p.y);
-		p.putWeak();
-
-	}
 	
 	override public function update(dt:Float):Void
 	{	
+		if (won) return;
+		
 		var drilling:Bool = FlxG.keys.pressed.SPACE;
 		var left:Bool = FlxG.keys.pressed.LEFT;
 		if (left && !drilling)
@@ -107,8 +95,7 @@ class Player extends FlxSprite
 			velocity.x = speed;
 		}
 		
-		var grounded:Bool = isTouching(FlxObject.FLOOR) || Math.abs(FlxG.worldBounds.height - (y + height)) < FlxMath.EPSILON;
-		if (grounded && drilling)
+		if (isGrounded() && drilling)
 		{	
 			var rowDelta:Int = 0;
 			var colDelta:Int = 0;
@@ -121,6 +108,10 @@ class Player extends FlxSprite
 			
 			if (rowDelta != 0 || colDelta != 0)
 			{
+				if (!drillSound.playing)
+				{
+					drillSound.play(true);
+				}
 				gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta);
 				animation.play(anim);
 			}
@@ -194,37 +185,26 @@ class Player extends FlxSprite
 		if (stamina <= 0)
 		{
 			stamina = 0;
-			deadSignal.dispatch();
+			alive = false;
+			deadSignal.dispatch(this);
 		}
 		
 		super.update(dt);		
 		syncTileCoords();
 	}
-	
-	public function centerToTile():Void
+
+	public function onPickup(obj1:Dynamic, obj2:Dynamic):Void
 	{
-		var p:FlxPoint = FlxPoint.weak();
-		gridRef.getGridPosition(tileRow, tileCol, p);
-		p.x += 0.5*(gridRef.tileWidth - width);			
-		setPosition(p.x, p.y + gridRef.tileHeight - height);
-		p.putWeak();
-	}
-	public function setTile(row:Int, col:Int, ?alignRight:Bool= false):Void
-	{
-		var p:FlxPoint = FlxPoint.weak();
-		gridRef.getGridPosition(row, col, p);
-		if (alignRight)
+		var pick:Pickup = cast obj2;
+		if (pick != null && pick.alive)
 		{
-			p.x += gridRef.tileWidth - width;			
-		}		
-		setPosition(p.x, p.y + gridRef.tileHeight - height);
-		p.putWeak();
+			if (pick.type == Pickup.SUGAR)
+			{
+				FlxG.sound.play(AssetPaths.sugar__wav);
+				stamina = FlxMath.bound(stamina + pick.amount, 0, initialStamina);
+				pick.onPicked();
+			}
+		}
 	}
 
-	public function keepBounds():Void
-	{
-		x = FlxMath.bound(x, 0, gridRef.width - width);
-		y = FlxMath.bound(y, 0, FlxG.worldBounds.height - height);
-		syncTileCoords();
-	}
 }

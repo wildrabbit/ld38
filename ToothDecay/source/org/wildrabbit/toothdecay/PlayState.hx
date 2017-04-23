@@ -7,6 +7,7 @@ import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.group.FlxGroup;
+import flixel.group.FlxSpriteGroup;
 import flixel.text.FlxText;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
@@ -26,6 +27,8 @@ class PlayState extends FlxState
 	var grid:Grid;
 	var player:Player;
 	
+	var pickups:FlxTypedGroup<Pickup>;//
+	
 	var gameGroup:FlxGroup;
 	var hudGroup:FlxGroup;
 	
@@ -34,6 +37,8 @@ class PlayState extends FlxState
 	
 	var gridCamera:FlxCamera;
 	var hudCamera:FlxCamera;
+	
+	var stamina:FlxText;
 	
 	/**
 	 * Function that is called up when to state is created to set it up.
@@ -50,11 +55,16 @@ class PlayState extends FlxState
 		FlxG.worldBounds.set(0, 0, grid.width, grid.height);
 		gameGroup.add(grid);
 		
-		player = new Player(grid);
+		player = new Player(grid, 0, 4);
 		gameGroup.add(player);
-		player.setTile(0, 4);
-		player.centerToTile();
 		player.deadSignal.addOnce(onPlayerDied);
+		
+		pickups = new FlxTypedGroup<Pickup>();
+		var pick:Pickup = new Pickup(grid, 10, 2);
+		pick.deadSignal.add(onPickupTaken);
+		pickups.add(pick);
+		
+		gameGroup.add(pickups);
 		
 		hudGroup = new FlxGroup();
 		add(hudGroup);
@@ -63,9 +73,13 @@ class PlayState extends FlxState
 		right = new FlxSprite(64 + grid.width, 0);
 		right.makeGraphic(128, Std.int(grid.height), FlxColor.BLACK);
 		
+		stamina = new FlxText(660, 10, 140, '${Std.int(player.stamina)}', 24);
+		stamina.color = FlxColor.WHITE;
+		
 		hudGroup.add(left);
 		hudGroup.add(right);
-		
+		hudGroup.add(stamina);
+
 		gridCamera = new FlxCamera(64, 0, Std.int(grid.width), FlxG.height, 1);
 		gridCamera.bgColor = bgColor;
 		gridCamera.follow(player, FlxCameraFollowStyle.LOCKON, 0.15);
@@ -96,6 +110,8 @@ class PlayState extends FlxState
 		grid = null;
 		left = null;
 		right = null;
+		
+		pickups = null;
 	}
 
 	/**
@@ -110,8 +126,29 @@ class PlayState extends FlxState
 			FlxG.resetState();
 		}
 
+		FlxG.collide(grid, pickups);
 		FlxG.collide(grid, player);
+		FlxG.overlap(player, pickups, player.onPickup);
+		grid.clusterfuck(player.tileRow, player.tileCol);
+		
 		player.keepBounds();
+		
+		if (!player.won && player.tileRow == grid.heightInTiles - 1 && player.isGrounded())
+		{
+			FlxG.sound.play(AssetPaths.won__wav);
+			player.won = true;
+		}
+		
+		if (player.alive)
+		{
+			if (player.won)
+				stamina.text = "WON! :D";
+			else 
+				stamina.text = '${Std.int(player.stamina)}';
+		}
+		else {
+			stamina.text = "DEAD! >_<";
+		}
 	}
 	
 	private function setGroupCamera(group:FlxGroup, cam:FlxCamera):Void 
@@ -123,12 +160,23 @@ class PlayState extends FlxState
 		group.forEachExists(func);
 	}
 	
-	private function onPlayerDied():Void
+	private function onPlayerDied(e:Entity):Void
 	{
 		var reset = function (t:FlxTween):Void
 		{
-			new FlxTimer().start(3, function(t:FlxTimer):Void { FlxG.resetGame(); } );
+			FlxG.sound.play(AssetPaths.dead__wav);
+			new FlxTimer().start(3, function(t:FlxTimer):Void {  FlxG.resetGame(); } );
 		}
-		FlxTween.tween(player, { "alpha":0 }, 0.5, { type:FlxTween.ONESHOT, onComplete:reset, ease:FlxEase.sineInOut } );
+		FlxTween.tween(e, { "alpha":0 }, 0.5, { type:FlxTween.ONESHOT, onComplete:reset, ease:FlxEase.sineInOut } );
+	}
+	
+	private function onPickupTaken(e:Entity):Void
+	{
+		var removePickup = function (t:FlxTween):Void
+		{
+			pickups.remove(cast e);
+			e.destroy();
+		}
+		FlxTween.tween(e, { "alpha":0 }, 0.2, { type:FlxTween.ONESHOT, onComplete:removePickup} );
 	}
 }
