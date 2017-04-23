@@ -57,7 +57,7 @@ class Reg
 	{
 		return Reg.level == levelOrdering.length - 1;
 	}
-	public static var backgroundColour:FlxColor = FlxColor.fromRGB(0xf3,0xe9,0xd5);
+	public static var backgroundColour:FlxColor = FlxColor.fromRGB(0x37, 0x17, 0x27);//	0xc8,0xe8,0xd8); // 371727
 	/**
 	 * Generic levels Array that can be used for cross-state stuff.
 	 * Example usage: Storing the levels of a platformer.

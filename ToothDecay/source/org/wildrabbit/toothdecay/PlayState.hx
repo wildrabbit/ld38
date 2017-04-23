@@ -30,6 +30,8 @@ import org.wildrabbit.toothdecay.world.Player;
  */
 class PlayState extends FlxState
 {
+	
+	private static inline var BORDER_WIDTH:Float = 112;
 	var oldGrid:Grid;
 	var currentGrid:Grid;
 	var gridIdx:Int;
@@ -156,28 +158,40 @@ class PlayState extends FlxState
 		hudGroup = new FlxGroup();
 		add(hudGroup);
 		left = new FlxSprite(0, 0);
-		left.makeGraphic(64, Std.int(currentGrid.height), FlxColor.BLACK);
-		right = new FlxSprite(64 + currentGrid.width, 0);
-		right.makeGraphic(128, Std.int(currentGrid.height), FlxColor.BLACK);
+		left.loadGraphic(AssetPaths.border__png);
+		//left.makeGraphic(BORDER_WIDTH, Std.int(currentGrid.height), FlxColor.BLACK);
+		var l2 = new FlxSprite(0, 0);
+		l2.loadGraphic(AssetPaths.border2__png);
+		right = new FlxSprite(FlxG.width - left.frameWidth, 0);
+		right.loadGraphic(AssetPaths.border__png);
+		right.setFacingFlip(FlxObject.RIGHT, true, false);
+		right.facing = FlxObject.RIGHT;		
+		var r2 = new FlxSprite(FlxG.width - l2.frameWidth, 0);
+		r2.loadGraphic(AssetPaths.border2__png);
+		r2.setFacingFlip(FlxObject.RIGHT, true, false);
+		r2.facing = FlxObject.RIGHT;		
+		//right.makeGraphic(BORDER_WIDTH, Std.int(currentGrid.height), FlxColor.BLACK);
 		
-		stamina = new FlxText(660, 10, 140, '${Std.int(player.stamina)}', 24);
+		stamina = new FlxText(BORDER_WIDTH + currentGrid.width, 10, 140, '${Std.int(player.stamina)}', 24);
 		stamina.color = FlxColor.WHITE;
 		
+		hudGroup.add(l2);
 		hudGroup.add(left);
+		hudGroup.add(r2);
 		hudGroup.add(right);
 		hudGroup.add(stamina);
 
-		gridCamera = new FlxCamera(64, 0, Std.int(currentGrid.width), FlxG.height, 1);
+		gridCamera = new FlxCamera(BORDER_WIDTH, 0, Std.int(currentGrid.width), FlxG.height, 1);
 		gridCamera.bgColor = bgColor;
 		gridCamera.follow(player, FlxCameraFollowStyle.LOCKON, 0.15);
 		gridCamera.setScrollBounds(0, currentGrid.width, 0, currentGrid.height);
 		hudCamera = new FlxCamera(0,0,FlxG.width, FlxG.height,1);
-		hudCamera.bgColor = bgColor;
+		hudCamera.bgColor = FlxColor.TRANSPARENT;
 		
 		
-		FlxCamera.defaultCameras = null;
-		FlxG.cameras.reset(hudCamera);
-		FlxG.cameras.add(gridCamera);
+		//FlxCamera.defaultCameras = null;
+		FlxG.cameras.reset(gridCamera);
+		FlxG.cameras.add(hudCamera);
 				
 		setGroupCamera(gameGroup, gridCamera);
 		setGroupCamera(hudGroup, hudCamera);
@@ -231,6 +245,8 @@ class PlayState extends FlxState
 			{
 				FlxG.sound.play(AssetPaths.won__wav);
 				player.won = true;
+				player.centerToTile();
+				player.animation.play("win");
 			}
 /*			else if (shouldSwapGrid()) // Drilled past the transition one
 			{
@@ -267,17 +283,20 @@ class PlayState extends FlxState
 		{
 			obj.camera = cam;
 		};
-		group.forEachExists(func);
+		group.forEachExists(func, true);
 	}
 	
 	private function onPlayerDied(e:Entity):Void
 	{
-		var reset = function (t:FlxTween):Void
+		player.animation.play("die");
+		player.centerToTile();
+		FlxG.sound.play(AssetPaths.dead__wav);
+			
+		/*var reset = function (t:FlxTween):Void
 		{
-			FlxG.sound.play(AssetPaths.dead__wav);
-			new FlxTimer().start(3, function(t:FlxTimer):Void {  FlxG.resetGame(); } );
+			//new FlxTimer().start(3, function(t:FlxTimer):Void {  FlxG.resetGame(); } );
 		}
-		FlxTween.tween(e, { "alpha":0 }, 0.5, { type:FlxTween.ONESHOT, onComplete:reset, ease:FlxEase.sineInOut } );
+		FlxTween.tween(e, { "alpha":0 }, 0.5, { type:FlxTween.ONESHOT, onComplete:reset, ease:FlxEase.sineInOut } );*/
 	}
 	
 	private function onPickupTaken(e:Entity):Void

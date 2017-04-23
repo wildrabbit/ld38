@@ -50,15 +50,19 @@ class Player extends Entity
 		super(grid);
 		
 		loadGraphic("assets/images/player.png", true,64, 64);
-		animation.add("idle", [0]);
-		animation.add("drill_down", [1],2,false);
-		animation.add("drill_up", [2], 2, false);
-		animation.add("drill_side", [3],2,false);
+		animation.add("idle", [0, 1], 5,true);
+		animation.add("move", [2,3], 5, true);
+		animation.add("drill_down", [4,5],5,false);
+		animation.add("drill_up", [7], 2, false);
+		animation.add("drill_side", [6], 2, false);
+		animation.add("die", [8], 2, false);
+		animation.add("win", [9,10],5,true);
+		
 		animation.play("idle");
 		animation.finishCallback = onAnimationFinished;
 		
-		setSize(38, 54);
-		offset.set(13, 5);
+		setSize(44, 56);
+		offset.set(11, 4);
 		
 		drag.set(1600, 0);
 		maxVelocity.set(speed, 500);
@@ -105,7 +109,7 @@ class Player extends Entity
 	
 	override public function update(dt:Float):Void
 	{	
-		if (won) return;
+		if (won) { super.update(dt);  return; }
 		
 		var drilling:Bool = FlxG.keys.pressed.SPACE;
 		var left:Bool = FlxG.keys.pressed.LEFT;
@@ -132,12 +136,16 @@ class Player extends Entity
 			
 			if (rowDelta != 0 || colDelta != 0)
 			{
-				if (!drillSound.playing)
+				var edgeCases:Bool = (colDelta > 0 && tileCol == gridRef.widthInTiles - 1) || (colDelta < 0 && tileCol == 0);
+				if (!edgeCases)
 				{
-					drillSound.play(true);
+					if (!drillSound.playing)
+					{
+						drillSound.play(true);
+					}
+					gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta);
+					animation.play(anim);
 				}
-				gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta);
-				animation.play(anim);
 			}
 		}
 		
@@ -215,6 +223,24 @@ class Player extends Entity
 		
 		super.update(dt);		
 		syncTileCoords();
+		if (!drilling)
+		{
+			if (Math.abs(velocity.x) < FlxMath.EPSILON)
+			{
+				animation.play("idle");
+			}
+			else if (velocity.x > 0)
+			{
+				facing = FlxObject.RIGHT;
+				animation.play("move");
+			}
+			else if (velocity.x < 0)
+			{
+				facing = FlxObject.LEFT;
+				animation.play("move");
+			}
+			
+		}
 	}
 
 	public function onPickup(obj1:Dynamic, obj2:Dynamic):Void
