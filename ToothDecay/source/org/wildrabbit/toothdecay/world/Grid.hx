@@ -63,6 +63,8 @@ class Grid extends FlxTilemap
 	
 	public var tileDropped:FlxTypedSignal<Int->Int->Void> = new FlxTypedSignal<Int->Int->Void>();
 	
+	public var hardTiles:Map<Int, Float> = new Map<Int, Float>();	
+	
 	public var clusterRebuildNeeded:Bool = false;
 	
 	public function init(level:Array<Int>, w:Int, h: Int):Void 
@@ -98,14 +100,45 @@ class Grid extends FlxTilemap
 	
 	public function drillTile(row:Int, col:Int):FlxSprite
 	{
-		var label:Int = labels[row * widthInTiles + col];
+		var ourIdx: Int = col + row * widthInTiles;
+		var label:Int = labels[ourIdx];	
+		var tileType:Int = _data[ourIdx];
+		if (tileType > TILE_HARD)
+		{
+			tileType -= 5;
+		}
+			
+		if (!Reg.resourceCounters.exists(tileType))
+		{
+			Reg.resourceCounters[tileType] = 0;
+		}
+		Reg.resourceCounters[tileType] = Reg.resourceCounters[tileType] + 1;
 		setTile(col, row, TILE_GAP, true);
+		
 		
 		if (clusters.exists(label))
 		{
+			if (clusters[label].indexes.length > 8)
+			{
+				camera.shake(0.01, 0.3);
+				parent.showExtra();
+			}
 			for (tileIdx in clusters[label].indexes)
 			{
-				setTileByIndex(tileIdx, TILE_GAP, true);
+				if (ourIdx != tileIdx)
+				{
+					var tileType:Int = _data[tileIdx];
+					if (tileType > TILE_HARD)
+					{
+						tileType -= 5;
+					}
+					if (!Reg.resourceCounters.exists(tileType))
+					{
+						Reg.resourceCounters[tileType] = 0;
+					}
+					Reg.resourceCounters[tileType] = Reg.resourceCounters[tileType] + 1;
+					setTileByIndex(tileIdx, TILE_GAP, true);
+				}
 				if (sprites != null && sprites.exists(tileIdx))
 				{
 					var sp:FlxSprite = sprites[tileIdx];

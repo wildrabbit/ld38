@@ -58,6 +58,7 @@ class PlayState extends FlxState
 	var hudCamera:FlxCamera;
 	
 	var stamina:FlxText;
+	var distance:FlxText;
 	
 	var gameRandom:FlxRandom = new FlxRandom();
 	
@@ -172,14 +173,19 @@ class PlayState extends FlxState
 		r2.facing = FlxObject.RIGHT;		
 		//right.makeGraphic(BORDER_WIDTH, Std.int(currentGrid.height), FlxColor.BLACK);
 		
-		stamina = new FlxText(BORDER_WIDTH + currentGrid.width, 10, 140, '${Std.int(player.stamina)}', 24);
+		stamina = new FlxText(BORDER_WIDTH + currentGrid.width, 10, 140, 'Sugar: ${Std.int(player.stamina)}', 14);
 		stamina.color = FlxColor.WHITE;
+		
+		distance = new FlxText(BORDER_WIDTH + currentGrid.width, 40, 140, 'Dist.: ${Std.int(Reg.distance)}microns', 12);
+		distance.color = FlxColor.WHITE;
+		
 		
 		hudGroup.add(l2);
 		hudGroup.add(left);
 		hudGroup.add(r2);
 		hudGroup.add(right);
 		hudGroup.add(stamina);
+		hudGroup.add(distance);
 
 		gridCamera = new FlxCamera(BORDER_WIDTH, 0, Std.int(currentGrid.width), FlxG.height, 1);
 		gridCamera.bgColor = bgColor;
@@ -221,6 +227,11 @@ class PlayState extends FlxState
 	override public function update(dt:Float):Void
 	{
 		super.update(dt);
+		
+		if (!player.alive && (gracePeriod > 0 && (Date.now().getTime() - gracePeriod) > 5000) && FlxG.keys.pressed.ANY)
+		{
+			FlxG.switchState(new MenuState());
+		}
 		
 		if (FlxG.keys.pressed.ESCAPE)
 		{
@@ -270,11 +281,14 @@ class PlayState extends FlxState
 			if (player.won)
 				stamina.text = "WON! :D";
 			else 
-				stamina.text = '${Std.int(player.stamina)}';
+				stamina.text = 'Sugar: ${Std.int(player.stamina)}';
 		}
 		else {
 			stamina.text = "DEAD! >_<";
-		}			
+		}
+		
+		Reg.distance = player.tileRow * 5;
+		distance.text = 'Distance: ${Std.int(Reg.distance)} microns';
 	}
 	
 	private function setGroupCamera(group:FlxGroup, cam:FlxCamera):Void 
@@ -286,8 +300,10 @@ class PlayState extends FlxState
 		group.forEachExists(func, true);
 	}
 	
+	private var gracePeriod:Float = -1;
 	private function onPlayerDied(e:Entity):Void
 	{
+		gracePeriod = Date.now().getTime();
 		player.animation.play("die");
 		player.centerToTile();
 		FlxG.sound.play(AssetPaths.dead__wav);
@@ -452,5 +468,19 @@ class PlayState extends FlxState
 			oldGrid.destroy();
 			oldGrid = null;
 		}
+	}
+	
+	public function showExtra():Void
+	{
+		var sprite:FlxSprite  = new FlxSprite(0, 600, "assets/images/Extra.png");
+		hudGroup.add(sprite);
+		sprite.camera = hudCamera;
+		
+		var sustain = function(t:FlxTween):Void
+		{
+			new FlxTimer().start(1.5, function(t:FlxTimer) { sprite.destroy(); } );
+		};
+		FlxTween.linearMotion(sprite, 0, 600, 0, 600 - 252, 0.4, true, { ease:FlxEase.sineIn, onComplete:sustain } );	
+		
 	}
 }

@@ -4,6 +4,7 @@ import flixel.util.FlxColor;
 import flixel.util.FlxSave;
 import haxe.Json;
 import haxe.ds.IntMap;
+import org.wildrabbit.toothdecay.world.Grid;
 
 import openfl.Assets;
 /**
@@ -49,10 +50,29 @@ typedef WeightEntry =
  {
 	 var levels:Array<LevelJson>;
  }
-
+ 
+ typedef Upgrade =
+ {
+	var levelID:Int;
+	var type:Int; // 0: Stamina, 1: Drill power, 2: Stamina depletion
+	var value:Float;
+	var resourceType:Int; // Tile type
+	var resourceAmount:Int; // Number of drilled tiles
+	var uiID:String; // To display stuff on the menu
+	var numStreptos:Int;
+ }
+ 
  
 class Reg
 {
+	public static var upgrades:Array<Upgrade> = 
+	[
+		{levelID:1, type:0, value: 100, resourceType: Grid.TILE_BLUE, resourceAmount: 200, uiID:"Fireplace", "numStreptos":3},
+		{levelID:2, type:2, value: 2, resourceType: Grid.TILE_RED, resourceAmount: 2000, uiID:"Camp", "numStreptos":5}
+	];
+	
+	public static var playerLevel:Int = 0;
+	
 	public static function lastLevel():Bool 
 	{
 		return Reg.level == levelOrdering.length - 1;
@@ -80,7 +100,9 @@ class Reg
 	 * Generic score variable that can be used for cross-state stuff.
 	 * Example usage: Storing the current score.
 	 */
-	public static var score:Int = 0;
+	public static var distance:Int = 0;
+	
+	public static var resourceCounters:Map<Int,Int> = new Map<Int,Int>();
 	/**
 	 * Generic bucket for storing different FlxSaves.
 	 * Especially useful for setting up multiple save slots.

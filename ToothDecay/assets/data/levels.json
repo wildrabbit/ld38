@@ -7,9 +7,9 @@
 		"generatePickups":true,
 		"pickupList":[],
 		"width":9,
-		"height":100,
-		"minStamina":2,
-		"maxStamina":15,
+		"height":200,
+		"minStamina":5,
+		"maxStamina":20,
 		"blockDensities": [
 			{"tile":0, "value":5},
 			{"tile":1, "value":20},

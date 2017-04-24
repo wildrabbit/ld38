@@ -20,6 +20,11 @@ class MenuState extends FlxState
 	{
 		super.create();
 		bgColor = Reg.backgroundColour;
+		var bg = new FlxSprite(0, 0);
+		bg.loadGraphic(AssetPaths.mainscreen__png);
+		add(bg);
+		var txt = new FlxText(0, 600 - 24, 320, "Press any key to start", 12);
+		add(txt);
 		FlxG.camera.fill(bgColor, false);
 	}
 

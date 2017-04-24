@@ -25,9 +25,9 @@ class Player extends Entity
 	private var touchingLeft:Bool = false;
 	private var touchingRight:Bool = false;
 	
-	private var initialStamina:Float = 100;
+	private var initialStamina:Float = 80;
 	public var stamina:Float = 0;
-	private var staminaDepletionRate:Float = 2;
+	private var staminaDepletionRate:Float = 4;
 	
 	private var drillSound: FlxSound;
 	
@@ -55,7 +55,7 @@ class Player extends Entity
 		animation.add("drill_down", [4,5],5,false);
 		animation.add("drill_up", [7], 2, false);
 		animation.add("drill_side", [6], 2, false);
-		animation.add("die", [8], 2, false);
+		animation.add("die", [8], 2, true);
 		animation.add("win", [9,10],5,true);
 		
 		animation.play("idle");
@@ -93,6 +93,7 @@ class Player extends Entity
 		{
 			stamina = 0;
 			alive = false;
+			animation.play('die');
 			deadSignal.dispatch(this);
 		}
 	}
@@ -109,7 +110,7 @@ class Player extends Entity
 	
 	override public function update(dt:Float):Void
 	{	
-		if (won) { super.update(dt);  return; }
+		if (won || !alive) { super.update(dt);  return; }
 		
 		var drilling:Bool = FlxG.keys.pressed.SPACE;
 		var left:Bool = FlxG.keys.pressed.LEFT;
@@ -212,15 +213,6 @@ class Player extends Entity
 		//x += (velocity.x -drag.x)* dt;
 		//position.y += (velocity.y - drag.y) * dt;
 		
-		var spentStamina:Float = dt * staminaDepletionRate;
-		stamina -= spentStamina;
-		if (stamina <= 0)
-		{
-			stamina = 0;
-			alive = false;
-			deadSignal.dispatch(this);
-		}
-		
 		super.update(dt);		
 		syncTileCoords();
 		if (!drilling)
@@ -238,9 +230,19 @@ class Player extends Entity
 			{
 				facing = FlxObject.LEFT;
 				animation.play("move");
-			}
-			
+			}			
 		}
+		
+		var spentStamina:Float = dt * staminaDepletionRate;
+		stamina -= spentStamina;
+		if (stamina <= 0)
+		{
+			stamina = 0;
+			alive = false;
+			deadSignal.dispatch(this);
+		}
+		
+		
 	}
 
 	public function onPickup(obj1:Dynamic, obj2:Dynamic):Void
