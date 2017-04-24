@@ -8,15 +8,15 @@
 		"pickupList":[],
 		"width":9,
 		"height":200,
-		"minStamina":5,
-		"maxStamina":20,
+		"minStamina":4,
+		"maxStamina":18,
 		"blockDensities": [
 			{"tile":0, "value":5},
 			{"tile":1, "value":20},
 			{"tile":2, "value":20},
 			{"tile":3, "value":20},
 			{"tile":4, "value":20},
-			{"tile":5, "value":2}
+			{"tile":5, "value":5}
 		],
 		"base":[]
 	},

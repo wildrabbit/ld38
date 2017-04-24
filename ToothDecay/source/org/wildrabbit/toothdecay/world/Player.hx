@@ -25,9 +25,9 @@ class Player extends Entity
 	private var touchingLeft:Bool = false;
 	private var touchingRight:Bool = false;
 	
-	private var initialStamina:Float = 80;
+	private var initialStamina:Float = 90;
 	public var stamina:Float = 0;
-	private var staminaDepletionRate:Float = 4;
+	private var staminaDepletionRate:Float = 3;
 	
 	private var drillSound: FlxSound;
 	
@@ -140,7 +140,7 @@ class Player extends Entity
 				var edgeCases:Bool = (colDelta > 0 && tileCol == gridRef.widthInTiles - 1) || (colDelta < 0 && tileCol == 0);
 				if (!edgeCases)
 				{
-					if (!drillSound.playing)
+					if (!drillSound.playing && !FlxG.sound.muted)
 					{
 						drillSound.play(true);
 					}

@@ -228,6 +228,11 @@ class PlayState extends FlxState
 	{
 		super.update(dt);
 		
+		if (FlxG.keys.justReleased.M)
+		{
+			FlxG.sound.muted = !FlxG.sound.muted;
+		}
+		
 		if (!player.alive && (gracePeriod > 0 && (Date.now().getTime() - gracePeriod) > 5000) && FlxG.keys.pressed.ANY)
 		{
 			FlxG.switchState(new MenuState());

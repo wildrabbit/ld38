@@ -26,6 +26,8 @@ class MenuState extends FlxState
 		var txt = new FlxText(0, 600 - 24, 320, "Press any key to start", 12);
 		add(txt);
 		FlxG.camera.fill(bgColor, false);
+		FlxG.mouse.visible = false;
+
 	}
 
 	/**
