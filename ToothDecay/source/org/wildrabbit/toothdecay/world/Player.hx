@@ -10,7 +10,10 @@ import flixel.system.FlxAssets.FlxGraphicAsset;
 import flixel.system.FlxSound;
 import flixel.util.FlxSignal;
 import org.wildrabbit.toothdecay.Entity;
+import org.wildrabbit.toothdecay.GameInput;
 import org.wildrabbit.toothdecay.Pickup;
+import org.wildrabbit.toothdecay.PlayState;
+import org.wildrabbit.toothdecay.world.Grid.TileType;
 
 /**
  * ...
@@ -30,6 +33,9 @@ class Player extends Entity
 	private var staminaDepletionRate:Float = 3;
 	
 	private var drillSound: FlxSound;
+	private var drillDelay:Float = 0.15;
+	private var drillStrength:Float = 1;
+	private var drillStart:Float = -1;
 	
 	public var won:Bool = false;
 	
@@ -45,9 +51,9 @@ class Player extends Entity
 		setTile(row, col);
 	}
 	
-	public function new(grid:Grid, startRow:Int, startCol:Int) 
+	public function new(parent:PlayState, grid:Grid, startRow:Int, startCol:Int) 
 	{
-		super(grid);
+		super(parent, grid);
 		
 		loadGraphic("assets/images/player.png", true,64, 64);
 		animation.add("idle", [0, 1], 5,true);
@@ -112,53 +118,72 @@ class Player extends Entity
 	{	
 		if (won || !alive) { super.update(dt);  return; }
 		
-		var drilling:Bool = FlxG.keys.pressed.SPACE;
-		var left:Bool = FlxG.keys.pressed.LEFT;
-		if (left && !drilling)
+		var input:GameInput = parent.getMainInput();
+		var drilling:Bool = input.drill;
+		var now:Float = Date.now().getTime();
+		
+		if (!drilling)
+		{
+			drillStart = -1;
+		}
+		
+		// Read motion input
+		var left:Bool = input.xValue < 0;
+		if (left)
 		{
 			velocity.x = -speed;
 		}
-		var right:Bool = FlxG.keys.pressed.RIGHT;
-		if (right && ! drilling)
+		var right:Bool = input.xValue > 0;
+		if (right)
 		{
 			velocity.x = speed;
 		}
 		
-		if (isGrounded() && drilling)
+		var drillAllowed:Bool = isGrounded() && drilling && (drillStart < 0 || (now - drillStart) * 0.001 > drillDelay);
+		/*
+		trace('Grounded: ${isGrounded()}');
+		trace('Drilling: $drilling');
+		trace('DrillStart: $drillStart');
+		trace('Drill delay: $drillDelay');
+		trace('Now: $now');
+		trace('Drill allowed: $drillAllowed');
+		*/
+		
+		if (drillAllowed)
 		{	
+			var anim:String = "";
 			var rowDelta:Int = 0;
 			var colDelta:Int = 0;
-			var anim:String = "idle";
 			facing = FlxObject.NONE;
-			if (FlxG.keys.pressed.UP) { rowDelta = -1; anim = "drill_up";}
-			else if (FlxG.keys.pressed.LEFT) { colDelta = -1; anim = "drill_side"; facing = FlxObject.LEFT; }
-			else if (FlxG.keys.pressed.RIGHT) { colDelta = 1; anim = "drill_side"; facing = FlxObject.RIGHT; }
+			if (input.yValue < 0) { rowDelta = -1; anim = "drill_up";}
+			else if (left) { colDelta = -1; anim = "drill_side"; facing = FlxObject.LEFT; }
+			else if (right) { colDelta = 1; anim = "drill_side"; facing = FlxObject.RIGHT; }
 			else { rowDelta = 1; anim = "drill_down";}
 			
-			if (rowDelta != 0 || colDelta != 0)
+			var validCoords: Bool = (rowDelta != 0 || colDelta != 0) && !((colDelta > 0 && tileCol == gridRef.widthInTiles - 1) || (colDelta < 0 && tileCol == 0));
+			if (validCoords)
 			{
-				var edgeCases:Bool = (colDelta > 0 && tileCol == gridRef.widthInTiles - 1) || (colDelta < 0 && tileCol == 0);
-				if (!edgeCases)
+				if (!drillSound.playing && !FlxG.sound.muted)
 				{
-					if (!drillSound.playing && !FlxG.sound.muted)
-					{
-						drillSound.play(true);
-					}
-					gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta);
-					animation.play(anim);
+					drillSound.play(true);
+				}
+				gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta, drillStrength);
+				drillStart = now;
+				if (anim != "")
+				{
+					animation.play(anim);				
 				}
 			}
 		}
 		
-		var now:Float = Date.now().getTime();
 		var wasTouchingLeft:Bool = touchingLeft;
 		touchingLeft = isTouching(FlxObject.LEFT);
-		if (touchingLeft && FlxG.keys.pressed.LEFT)
+		if (touchingLeft && left)
 		{
 			if (tileCol > 0 && tileRow > 0)
 			{
 				var tileID:Int = gridRef.getTile(tileCol - 1, tileRow - 1);
-				if (tileID == Grid.TILE_GAP)
+				if (tileID == TileType.Gap)
 				{
 					if (!wasTouchingLeft)
 					{
@@ -182,13 +207,13 @@ class Player extends Entity
 		
 		var wasTouchingRight:Bool = touchingRight;
 		touchingRight = isTouching(FlxObject.RIGHT);
-		if (touchingRight && FlxG.keys.pressed.RIGHT)
+		if (touchingRight && right)
 		{
 			if (tileCol >= 0 && tileCol < gridRef.widthInTiles - 1 && tileRow > 0)
 			{
 				var tileID:Int = gridRef.getTile(tileCol + 1, tileRow - 1);
 				//FlxG.log.add("right diag tile at $tileRow , $tileCol is $tileID");
-				if (tileID == Grid.TILE_GAP)
+				if (tileID == TileType.Gap)
 				{
 					if (!wasTouchingRight)
 					{
@@ -241,8 +266,6 @@ class Player extends Entity
 			alive = false;
 			deadSignal.dispatch(this);
 		}
-		
-		
 	}
 
 	public function onPickup(obj1:Dynamic, obj2:Dynamic):Void

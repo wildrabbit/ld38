@@ -4,6 +4,7 @@ import flixel.FlxSprite;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.input.FlxPointer;
 import flixel.math.FlxPoint;
+import org.wildrabbit.toothdecay.world.Grid.TileType;
 
 /**
  * ...
@@ -12,7 +13,7 @@ import flixel.math.FlxPoint;
 class Cluster
 {
 	public var label:Int;
-	public var type:Int = Grid.TILE_GAP;
+	public var type:Int = TileType.Gap;
 	public var indexes:Array<Int> = new Array<Int>();
 	public var connected:Bool = false;
 	

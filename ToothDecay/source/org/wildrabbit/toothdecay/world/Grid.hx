@@ -3,11 +3,15 @@ package org.wildrabbit.toothdecay.world;
 import com.danielmessias.mazegenerator.DisjointSets;
 import flixel.group.FlxGroup;
 import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.tile.FlxTile;
 import flixel.tweens.FlxTween;
+import flixel.util.FlxDestroyUtil;
 import flixel.util.FlxSignal;
 import flixel.util.FlxTimer;
 import org.wildrabbit.toothdecay.Pickup;
 import org.wildrabbit.toothdecay.PlayState;
+import org.wildrabbit.toothdecay.world.TileInfo;
+import org.wildrabbit.toothdecay.world.TileTable;
 
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -21,34 +25,41 @@ import flixel.tile.FlxBaseTilemap;
  * ...
  * @author ith1ldin
  */
+
+ @:enum
+abstract TileType(Int) from Int to Int
+{
+	var Gap = 0;
+    var Blue = 1;
+    var Yellow = 2;
+	var Green = 3;
+	var Red = 4;
+	var Hard = 5;
+	var BlueTransform = 6;
+	var YellowTransform = 7;
+	var GreenTransform = 8;
+	var RedTransform = 9;
+	var HardTransform = 10;
+	var EndLevel = 11;
+	var EndLevelTransform = 12;
+}
+ 
 class Grid extends FlxTilemap
 {
 	private var parent:PlayState;
+	
+	public var tileTable:TileTable = new TileTable();
+	public var tileHP:Array<Float> = new Array<Float>();
+	
 	public function new(Parent:PlayState) 
 	{
 		super();
 		parent = Parent;
+		setupTileTable();
 	}
 	
 	private static inline var TILE_WIDTH:Int = 64;
 	private static inline var TILE_HEIGHT:Int = 64;
-	
-	// Replace with enum:
-	public static inline var TILE_GAP:Int = 0;
-	
-	public static inline var TILE_BLUE:Int = 1;
-	public static inline var TILE_YELLOW:Int = 2;
-	public static inline var TILE_GREEN:Int = 3;
-	public static inline var TILE_RED:Int = 4;
-	public static inline var TILE_HARD:Int = 5;
-	
-	public static inline var TILE_BLUE_REPL:Int = 6;
-	public static inline var TILE_YELLOW_REPL:Int = 7;
-	public static inline var TILE_GREEN_REPL:Int = 8;
-	public static inline var TILE_RED_REPL:Int = 9;
-	public static inline var TILE_HARD_REPL:Int = 10;
-	
-	public static inline var TILE_ENDLEVEL:Int = 11;
 	
 	//
 	private static inline var TILE_NEXTLEVEL:Int = 3;
@@ -69,19 +80,25 @@ class Grid extends FlxTilemap
 	
 	public function init(level:Array<Int>, w:Int, h: Int):Void 
 	{		
-		loadMapFromArray(level, w, h, "assets/images/tiles_00.png", TILE_WIDTH, TILE_HEIGHT, FlxTilemapAutoTiling.OFF, 0, 1, 1);
-		setTileProperties(1, FlxObject.ANY);
-		setTileProperties(2, FlxObject.ANY);
-		setTileProperties(3, FlxObject.ANY);
-		setTileProperties(4, FlxObject.ANY);
-		setTileProperties(5, FlxObject.ANY);
-		setTileProperties(6, FlxObject.ANY);
-		setTileProperties(7, FlxObject.ANY);
-		setTileProperties(8, FlxObject.ANY);
-		setTileProperties(9, FlxObject.ANY);
-		setTileProperties(10, FlxObject.ANY);		
+		setCustomTileMappings(tileTable.getTileMappings());
+		loadMapFromArray(level, w, h, "assets/images/tiles_00.png", TILE_WIDTH, TILE_HEIGHT, FlxTilemapAutoTiling.OFF, 0, 1, 1);		
+		var info:TileInfo = null;
+		
+		for (info in tileTable)
+		{
+			setTileProperties(info.id, info.collisionType);
+		}		
+		
+		for (value in _data)
+		{
+			info = tileTable.getInfo(value);
+			var msg:String = 'Invalid tile info for value $value!';
+			if (info == null) throw msg;
+			tileHP.push(info.drillCost);
+		}
 		clusterRebuildNeeded = true;
 	}
+	
 	
 	public function getGridCoords(x:Float, y:Float, p:FlxPoint):Void
 	{
@@ -98,14 +115,41 @@ class Grid extends FlxTilemap
 		p.y = y + row * tileHeight;
 	}
 	
-	public function drillTile(row:Int, col:Int):FlxSprite
+	private function setupTileTable():Void
+	{
+		tileTable.emplaceEntry(TileType.Gap, FlxObject.NONE, 0, 0,0, -1);
+		tileTable.emplaceEntry(TileType.Blue, FlxObject.ANY, 1, 1,0, -1);
+		tileTable.emplaceEntry(TileType.Yellow, FlxObject.ANY, 1, 2,0, -1);
+		tileTable.emplaceEntry(TileType.Green, FlxObject.ANY, 1, 3,0,-1);
+		tileTable.emplaceEntry(TileType.Red, FlxObject.ANY, 1, 4,0,-1);
+		tileTable.emplaceEntry(TileType.Hard, FlxObject.ANY, 3,5,15, -1);
+		tileTable.emplaceEntry(TileType.BlueTransform, FlxObject.NONE,0, 0,0, TileType.Blue);
+		tileTable.emplaceEntry(TileType.YellowTransform, FlxObject.NONE, 0,0, 0, TileType.Yellow);
+		tileTable.emplaceEntry(TileType.GreenTransform, FlxObject.NONE,0, 0,0, TileType.Green);
+		tileTable.emplaceEntry(TileType.RedTransform, FlxObject.NONE,0, 0, 0,TileType.Red);
+		tileTable.emplaceEntry(TileType.HardTransform, FlxObject.NONE,0, 0,0, TileType.Hard);
+		tileTable.emplaceEntry(TileType.EndLevel, FlxObject.ANY, 1,6,0, -1);
+		tileTable.emplaceEntry(TileType.EndLevelTransform, FlxObject.NONE, 1,0,0, TileType.EndLevel);
+	}
+	
+	public function drillTile(row:Int, col:Int, strength:Float = 1):Int
 	{
 		var ourIdx: Int = col + row * widthInTiles;
 		var label:Int = labels[ourIdx];	
 		var tileType:Int = _data[ourIdx];
-		if (tileType > TILE_HARD)
+		var info:TileInfo = tileTable.getInfo(tileType);
+		if (info == null) throw 'Invalid tile info for value $tileType';
+		
+		tileHP[ourIdx] -= strength;
+		
+		if (tileHP[ourIdx] <= 0)
 		{
-			tileType -= 5;
+			tileHP[ourIdx] = 0;
+		
+				// Resolve transformed tile type:
+		if (info.parentId >= 0)
+		{
+			tileType = info.parentId;
 		}
 			
 		if (!Reg.resourceCounters.exists(tileType))
@@ -113,7 +157,7 @@ class Grid extends FlxTilemap
 			Reg.resourceCounters[tileType] = 0;
 		}
 		Reg.resourceCounters[tileType] = Reg.resourceCounters[tileType] + 1;
-		setTile(col, row, TILE_GAP, true);
+		setTile(col, row, TileType.Gap, true);
 		
 		
 		if (clusters.exists(label))
@@ -128,28 +172,26 @@ class Grid extends FlxTilemap
 				if (ourIdx != tileIdx)
 				{
 					var tileType:Int = _data[tileIdx];
-					if (tileType > TILE_HARD)
+					var info:TileInfo = tileTable.getInfo(tileType);
+					if (info == null) throw 'Invalid tile info for value $tileType';
+					if (info.parentId >= 0)
 					{
-						tileType -= 5;
+						tileType = info.parentId;
 					}
 					if (!Reg.resourceCounters.exists(tileType))
 					{
 						Reg.resourceCounters[tileType] = 0;
 					}
 					Reg.resourceCounters[tileType] = Reg.resourceCounters[tileType] + 1;
-					setTileByIndex(tileIdx, TILE_GAP, true);
-				}
-				if (sprites != null && sprites.exists(tileIdx))
-				{
-					var sp:FlxSprite = sprites[tileIdx];
-					sprites.remove(tileIdx);
-					sp.destroy();					
+					setTileByIndex(tileIdx, TileType.Gap, true);
 				}
 			}			
 		}
 		clusterRebuildNeeded = true;
 		// TODO: Convert to sprite for destruction animation.
-		return null;
+		return info.staminaCost;	
+		}
+		return 0;
 	}
 	
 	public function offsetCamRef(row:Int, col:Int):Void
@@ -195,11 +237,11 @@ class Grid extends FlxTilemap
 			{
 				idx = rowIdx + col;
 				tileValue = getTileByIndex(idx);
-				if (tileValue == TILE_GAP) continue;
+				if (tileValue == TileType.Gap) continue;
 				
 				// Test north:
-				var northVal:Int = TILE_GAP;
-				var westVal:Int = TILE_GAP;
+				var northVal:Int = TileType.Gap;
+				var westVal:Int = TileType.Gap;
 				var northIdx:Int = -1;					
 				var westIdx:Int = -1;
 
@@ -279,7 +321,7 @@ class Grid extends FlxTilemap
 		{
 			idx = rowIdx + col;
 			tileValue = _data[idx];
-			if (tileValue == TILE_GAP) continue;
+			if (tileValue == TileType.Gap) continue;
 				
 			if (clusters.exists(labels[idx]))
 			{
@@ -295,13 +337,13 @@ class Grid extends FlxTilemap
 			{
 				idx = rowIdx + col;
 				tileValue = _data[idx];
-				if (tileValue == TILE_GAP || !clusters.exists(labels[idx]) || clusters[labels[idx]].connected) continue;
+				if (tileValue == TileType.Gap || !clusters.exists(labels[idx]) || clusters[labels[idx]].connected) continue;
 				
 				cluster = clusters[labels[idx]];
 				var belowLabel:Int = labels[idx + widthInTiles];
 				var belowTile:Int = _data[idx + widthInTiles];
 				var predicate = function (pickup:Pickup):Bool { return pickup.tileRow == row + 1 && pickup.tileCol == col; };
-				if ((belowTile == TILE_GAP && pickups.filter(predicate).length == 0)|| !clusters.exists(belowLabel) || !clusters[belowLabel].connected) continue;
+				if ((belowTile == TileType.Gap && pickups.filter(predicate).length == 0)|| !clusters.exists(belowLabel) || !clusters[belowLabel].connected) continue;
 				cluster.connected = true;
 			}
 			row--;		
@@ -377,7 +419,7 @@ class Grid extends FlxTilemap
 					var coords:FlxPoint = getTileCoordsByIndex(index,false);
 					sprites[index].x = coords.x;
 					var restoredValue:Int = _data[index] - 5;
-					setTile(col,row, TILE_GAP);
+					setTile(col,row, TileType.Gap);
 					
 					var dropFinished = function(t:FlxTween):Void
 					{
@@ -417,4 +459,30 @@ class Grid extends FlxTilemap
 	{
 		super.autoTile(Index);
 	}	
+	
+	override private function initTileObjects():Void 
+	{
+		if (frames == null)
+			return;
+		
+		_tileObjects = FlxDestroyUtil.destroyArray(_tileObjects);
+		// Create some tile objects that we'll use for overlap checks (one for each tile)
+		_tileObjects = new Array<FlxTile>();
+		
+		var length:Int = customTileRemap.length;
+		length += _startingIndex;
+		
+		for (i in 0...length)
+		{
+			var info:TileInfo = tileTable.getInfo(i);
+			if (info == null) continue;
+			_tileObjects[i] = new FlxTile(this, i, _tileWidth, _tileHeight, (info.graphicId >= _drawIndex), (i >= _collideIndex) ? allowCollisions : FlxObject.NONE);
+		}
+		// Create debug tiles for rendering bounding boxes on demand
+		#if FLX_DEBUG
+		updateDebugTileBoundingBoxSolid();
+		updateDebugTileBoundingBoxNotSolid();
+		updateDebugTileBoundingBoxPartial();
+		#end
+	}
 }

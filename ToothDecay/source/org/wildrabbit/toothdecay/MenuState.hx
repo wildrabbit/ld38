@@ -3,6 +3,7 @@ package org.wildrabbit.toothdecay;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.input.gamepad.FlxGamepad;
 import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
@@ -45,7 +46,16 @@ class MenuState extends FlxState
 	override public function update(dt:Float):Void
 	{
 		super.update(dt);
-		if (FlxG.keys.pressed.ANY)
+		
+		var any:Bool = FlxG.keys.pressed.ANY;
+		#if !FLX_NO_GAMEPAD		
+		var gamepad:FlxGamepad = FlxG.gamepads.lastActive;
+		if (gamepad != null)
+		{
+			any = any || gamepad.pressed.ANY;
+		}
+		#end 
+		if (any)
 		{
 			FlxG.switchState(new PlayState());
 		}

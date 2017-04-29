@@ -1,5 +1,6 @@
 package org.wildrabbit.toothdecay;
 
+import flash.events.GameInputEvent;
 import flixel.FlxBasic;
 import flixel.FlxCamera;
 import flixel.FlxG;
@@ -19,11 +20,14 @@ import flixel.util.FlxColor;
 import flixel.util.FlxSpriteUtil;
 import flixel.util.FlxTimer;
 import haxe.ds.Vector;
+import org.wildrabbit.toothdecay.GameInput.GamepadInput;
+import org.wildrabbit.toothdecay.GameInput.KeyMouseInput;
 import org.wildrabbit.toothdecay.Reg.IntVec2;
 import org.wildrabbit.toothdecay.Reg.LevelJson;
 import org.wildrabbit.toothdecay.Reg.PickupJson;
 import org.wildrabbit.toothdecay.world.Grid;
 import org.wildrabbit.toothdecay.world.Player;
+import org.wildrabbit.toothdecay.world.Grid.TileType;
 
 /**
  * A FlxState which can be used for the actual gameplay.
@@ -39,6 +43,9 @@ class PlayState extends FlxState
 	
 	var needsNewGrid:Bool = false;
 	var purgePrevious:Bool = false;
+	
+	var mainInput:GameInput = new GameInput();
+	var inputSchemes:Array<GameInput> = new Array<GameInput>();
 	
 	@:allow(org.wildrabbit.toothdecay.world.Grid)
 	var player:Player;
@@ -105,6 +112,9 @@ class PlayState extends FlxState
 		var height:Int = defH;
 		var playerStart:IntVec2 = defPlayer;
 		
+		inputSchemes.push(new KeyMouseInput());
+		inputSchemes.push(new GamepadInput());
+		
 		currentLevel = Reg.getLevel(0);
 		if (currentLevel != null)
 		{
@@ -134,7 +144,7 @@ class PlayState extends FlxState
 		FlxG.worldBounds.set(0, 0, currentGrid.width, currentGrid.height);
 		gameGroup.add(currentGrid);
 		
-		player = new Player(currentGrid, playerStart.row, playerStart.col);
+		player = new Player(this, currentGrid, playerStart.row, playerStart.col);
 		player.deadSignal.addOnce(onPlayerDied);
 		player.reachedBottom.addOnce(onReachedBottom);
 		
@@ -142,7 +152,7 @@ class PlayState extends FlxState
 		pickupList = new Array<Pickup>();
 		for (pickInfo in pickupData)
 		{
-			var pick:Pickup = new Pickup(currentGrid, pickInfo.type, pickInfo.amount, pickInfo.startPos.row, pickInfo.startPos.col);
+			var pick:Pickup = new Pickup(this, currentGrid, pickInfo.type, pickInfo.amount, pickInfo.startPos.row, pickInfo.startPos.col);
 			pick.deadSignal.add(onPickupTaken);
 			pickups.add(pick);
 			pickupList.push(pick);			
@@ -226,19 +236,16 @@ class PlayState extends FlxState
 	 */
 	override public function update(dt:Float):Void
 	{
+		processInputs();
+		
 		super.update(dt);
 		
-		if (FlxG.keys.justReleased.M)
-		{
-			FlxG.sound.muted = !FlxG.sound.muted;
-		}
-		
-		if (!player.alive && (gracePeriod > 0 && (Date.now().getTime() - gracePeriod) > 5000) && FlxG.keys.pressed.ANY)
+		if (!player.alive && (gracePeriod > 0 && (Date.now().getTime() - gracePeriod) > 5000) && mainInput.any)
 		{
 			FlxG.switchState(new MenuState());
 		}
 		
-		if (FlxG.keys.pressed.ESCAPE)
+		if (mainInput.reset)
 		{
 			FlxG.resetState();
 		}
@@ -264,16 +271,10 @@ class PlayState extends FlxState
 				player.centerToTile();
 				player.animation.play("win");
 			}
-/*			else if (shouldSwapGrid()) // Drilled past the transition one
-			{
-				
-			}*/
 		}
 		else if (shouldGetTransitionGrid())
 		{
 			createEndLevelGrid();			
-			// create next grid
-			//FlxG.worldBounds.height += endLevelSprite.height;
 		}
 		
 		if (oldGrid != null) 
@@ -367,7 +368,7 @@ class PlayState extends FlxState
 			var tileID:Int = gameRandom.getObject(objs, weights);
 			if (i == levelData.width * levelData.playerStart.row + levelData.playerStart.col)
 			{
-				tileID = Grid.TILE_GAP;
+				tileID = TileType.Gap;
 			}
 			grid[i] = tileID;
 		}
@@ -388,7 +389,7 @@ class PlayState extends FlxState
 				for (colIdx in 0...levelData.width)
 				{
 					var idx:Int = rowIdx * levelData.width + colIdx;
-					if (grid[idx] == Grid.TILE_GAP)
+					if (grid[idx] == TileType.Gap)
 					{
 						candidateCols.push(colIdx);
 					}
@@ -422,7 +423,7 @@ class PlayState extends FlxState
 			for (pickupItem in array)
 			{
 				var idx:Int = pickupItem.startPos.row * levelData.width + pickupItem.startPos.col;
-				grid[idx] = Grid.TILE_GAP;
+				grid[idx] = TileType.Gap;
 			}
 		}
 		return array;
@@ -444,9 +445,9 @@ class PlayState extends FlxState
 		for (i in 0...tiles.length)
 		{
 			if (i < currentGrid.widthInTiles)
-				tiles[i] = Grid.TILE_GAP;
+				tiles[i] = TileType.Gap;
 			else
-				tiles[i] = Grid.TILE_ENDLEVEL;
+				tiles[i] = TileType.EndLevel;
 		}
 		
 		endLevelSprite.init(tiles.toArray(), currentGrid.widthInTiles, 6);
@@ -487,5 +488,26 @@ class PlayState extends FlxState
 		};
 		FlxTween.linearMotion(sprite, 0, 600, 0, 600 - 252, 0.4, true, { ease:FlxEase.sineIn, onComplete:sustain } );	
 		
+	}
+
+	public function processInputs():Void
+	{
+		mainInput.clear();
+		for (inputScheme in inputSchemes)
+		{
+			inputScheme.gatherInputs();
+			mainInput.reset = mainInput.reset || inputScheme.reset;
+			mainInput.toggleGodMode = mainInput.toggleGodMode || inputScheme.toggleGodMode;
+			mainInput.togglePause = mainInput.togglePause || inputScheme.togglePause;
+			mainInput.xValue = (mainInput.xValue == 0) ? inputScheme.xValue : mainInput.xValue;
+			mainInput.yValue = (mainInput.yValue == 0) ? inputScheme.yValue : mainInput.yValue;
+			mainInput.drill = mainInput.drill || inputScheme.drill;
+			mainInput.any = mainInput.any || inputScheme.any;
+		}
+	}
+	
+	public function getMainInput():GameInput
+	{
+		return mainInput;
 	}
 }

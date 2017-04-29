@@ -15,6 +15,7 @@ import org.wildrabbit.toothdecay.world.Grid;
  */
 class Entity extends FlxSprite
 {
+	private var parent:PlayState;
 	private var gridRef:Grid;
 	public var deadSignal: FlxTypedSignal<Entity->Void>;
 	public var reachedBottom:FlxTypedSignal<Entity->Void>;
@@ -25,9 +26,10 @@ class Entity extends FlxSprite
 	public var tileCol:Int = 0;
 	public var tileRow:Int = 0;
 	
-	public function new(grid:Grid) 
+	public function new(Parent:PlayState, grid:Grid) 
 	{
 		super(0, 0);
+		parent = Parent;
 		gridRef = grid;
 		
 		acceleration.y = 800;
