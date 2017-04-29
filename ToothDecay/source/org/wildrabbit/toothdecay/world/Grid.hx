@@ -122,7 +122,7 @@ class Grid extends FlxTilemap
 		tileTable.emplaceEntry(TileType.Yellow, FlxObject.ANY, 1, 2,0, -1);
 		tileTable.emplaceEntry(TileType.Green, FlxObject.ANY, 1, 3,0,-1);
 		tileTable.emplaceEntry(TileType.Red, FlxObject.ANY, 1, 4,0,-1);
-		tileTable.emplaceEntry(TileType.Hard, FlxObject.ANY, 3,5,15, -1);
+		tileTable.emplaceEntry(TileType.Hard, FlxObject.ANY, 8,5,15, -1);
 		tileTable.emplaceEntry(TileType.BlueTransform, FlxObject.NONE,0, 0,0, TileType.Blue);
 		tileTable.emplaceEntry(TileType.YellowTransform, FlxObject.NONE, 0,0, 0, TileType.Yellow);
 		tileTable.emplaceEntry(TileType.GreenTransform, FlxObject.NONE,0, 0,0, TileType.Green);

@@ -118,9 +118,11 @@ class Player extends Entity
 	{	
 		if (won || !alive) { super.update(dt);  return; }
 		
+		
 		var input:GameInput = parent.getMainInput();
 		var drilling:Bool = input.drill;
 		var now:Float = Date.now().getTime();
+		var staminaCost:Float = 0;
 		
 		if (!drilling)
 		{
@@ -167,7 +169,7 @@ class Player extends Entity
 				{
 					drillSound.play(true);
 				}
-				gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta, drillStrength);
+				staminaCost += gridRef.drillTile(tileRow + rowDelta, tileCol + colDelta, drillStrength);
 				drillStart = now;
 				if (anim != "")
 				{
@@ -258,8 +260,9 @@ class Player extends Entity
 			}			
 		}
 		
-		var spentStamina:Float = dt * staminaDepletionRate;
-		stamina -= spentStamina;
+		staminaCost += dt * staminaDepletionRate;
+		
+		stamina -= staminaCost;
 		if (stamina <= 0)
 		{
 			stamina = 0;

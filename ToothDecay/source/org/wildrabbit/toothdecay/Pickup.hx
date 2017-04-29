@@ -14,7 +14,7 @@ class Pickup extends Entity
 	public static inline var SUGAR:Int = 0;
 	
 	public var type:Int = 0;
-	public var amount:Int = 10;
+	public var amount:Int = 15;
 		
 	public function new(Parent:PlayState, grid:Grid, t:Int, a:Int, startRow:Int, startCol:Int) 
 	{
