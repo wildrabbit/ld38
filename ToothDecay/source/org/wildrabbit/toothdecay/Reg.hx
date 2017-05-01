@@ -70,8 +70,8 @@ class Reg
 {
 	public static var upgrades:Array<Upgrade> = 
 	[
-	{levelID:1, type:0, value: 100, resourceType: TileType.Blue, resourceAmount: 200, uiID:"Fireplace", "numStreptos":3},
-	{levelID:2, type:2, value: 2, resourceType: TileType.Red, resourceAmount: 2000, uiID:"Camp", "numStreptos":5}
+	{levelID:1, type:0, value: 100, resourceType: TileType.Enamel, resourceAmount: 200, uiID:"Fireplace", "numStreptos":3},
+	{levelID:2, type:2, value: 2, resourceType: TileType.Pulp, resourceAmount: 2000, uiID:"Camp", "numStreptos":5}
 	];
 	
 	public static var playerLevel:Int = 0;

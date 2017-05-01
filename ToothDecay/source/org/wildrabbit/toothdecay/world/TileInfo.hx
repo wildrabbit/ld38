@@ -31,18 +31,20 @@ abstract TileTransformType(Int) from Int to Int
 
 class TileInfo
 {
-	static public var NO_TILE:TileInfo = new TileInfo( -1, -1, -1);
+
 	public var id:Int = 0;
-	public var graphicId:Int = 0;
+	public var graphicId:Int = 0;	// Base ID
+	public var autoTiling:Bool = false;
 	public var collisionType:Int = FlxObject.NONE;
 	public var drillCost:Int = 0;
 	public var staminaCost:Int = 0;
 	public var parentId:Int = 0;
 	public var transformationConfigs:Map<TileTransformType, TransformStateConfig> = new Map<TileTransformType, TransformStateConfig>();
 		
-	public function new(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0, ParentId:Int = -1) 
+	public function new(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0, ParentId:Int = -1, AutoTile:Bool = false) 
 	{
-		set(Id, CollisionType, DrillCost, GraphicId, StaminaCost, ParentId);
+		set(Id, CollisionType, DrillCost, GraphicId, StaminaCost, ParentId, AutoTile);
+		trace('id: $id, gid: $graphicId');
 	}	
 	
 	public function setTransformationData(cfg:TransformStateConfig):Void
@@ -58,7 +60,7 @@ class TileInfo
 		return null;
 	}
 	
-	public function set(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0,  ParentId:Int = -1):Void
+	public function set(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0,  ParentId:Int = -1, AutoTile:Bool = false):Void
 	{
 		id = Id;
 		collisionType = CollisionType;
@@ -66,8 +68,10 @@ class TileInfo
 		staminaCost = StaminaCost;
 		parentId = ParentId;
 		graphicId = id;
-		
+		autoTiling = AutoTile;
+
 		if (GraphicId >= 0)
 			graphicId = GraphicId;
 	}
+
 }

@@ -9,7 +9,8 @@ class TileTable
 	private var tileTable: Map<Int,TileInfo> = new Map<Int,TileInfo>();
 	private var tileMappings: Array<Int> = null;
 	private var sortedKeys: Array<Int> = new Array<Int>();	
-	
+	private var reverseMappings:Map<Int,Int> = new Map<Int, Int>();
+
 	public function new()
 	{		
 	}
@@ -32,14 +33,18 @@ class TileTable
 				return v1 - v2;
 			};
 			ArraySort.sort(sortedKeys, comparer);
+			if (!reverseMappings.exists(value.graphicId))
+				reverseMappings.set(value.graphicId, value.id);
 		}
 	}
 	
-	public function emplaceEntry(id:Int, collisionType:Int, drillCost:Int, graphicId: Int, staminaCost:Int, parentId:Int):Void
+	public function emplaceEntry(id:Int, collisionType:Int, drillCost:Int, graphicId: Int, staminaCost:Int, parentId:Int, autoTiling:Bool = false):Void
 	{
-		var info:TileInfo = new TileInfo(id, collisionType, drillCost, graphicId, staminaCost, parentId);
+		var info:TileInfo = new TileInfo(id, collisionType, drillCost, graphicId, staminaCost, parentId, autoTiling);
 		addEntry(info);
 	}
+	
+
 	
 	public function getInfo(key:Int):TileInfo
 	{
@@ -68,8 +73,36 @@ class TileTable
 		tileMappings = new Array<Int>();
 		for (key in sortedKeys)
 		{
-			tileMappings.push(tileTable[key].graphicId);
+			if (key > 0 && key <= Grid.LAST_AUTOTILING_ID)
+			{
+				// We need to add all the references
+				var graphicId:Int = tileTable[key].graphicId;
+				for (offset in 0...Grid.TILE_STRIDE)
+					tileMappings.push(graphicId + offset);
+			}
+			else 
+			{
+				tileMappings.push(tileTable[key].graphicId);	
+			}			
 		}
 	}
 
+	public function  getTypeFromGraphicId(graphicId:Int):Int
+	{
+		// First try: reverse map
+		if (reverseMappings.exists(graphicId))
+		{
+			return reverseMappings[graphicId];
+		}
+		else 
+		{
+			var row:Int = Std.int((graphicId - 1) / Grid.TILE_STRIDE);
+			var firstGraphicIdInStride = row * Grid.TILE_STRIDE + 1;
+			if (reverseMappings.exists(firstGraphicIdInStride))
+			{
+				return reverseMappings[firstGraphicIdInStride];
+			}
+		}
+		return 0;
+	}
 }

@@ -447,7 +447,7 @@ class PlayState extends FlxState
 			if (i < currentGrid.widthInTiles)
 				tiles[i] = TileType.Gap;
 			else
-				tiles[i] = TileType.EndLevel;
+				tiles[i] = TileType.Nerve;
 		}
 		
 		endLevelSprite.init(tiles.toArray(), currentGrid.widthInTiles, 6);
