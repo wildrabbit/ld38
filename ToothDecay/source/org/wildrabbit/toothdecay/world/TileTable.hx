@@ -38,9 +38,9 @@ class TileTable
 		}
 	}
 	
-	public function emplaceEntry(id:Int, collisionType:Int, drillCost:Int, graphicId: Int, staminaCost:Int, parentId:Int, autoTiling:Bool = false):Void
+	public function emplaceEntry(id:Int, collisionType:Int, drillCost:Int, graphicId: Int, staminaCost:Int, parentId:Int, autoTiling:Bool = false, visible:Bool = true):Void
 	{
-		var info:TileInfo = new TileInfo(id, collisionType, drillCost, graphicId, staminaCost, parentId, autoTiling);
+		var info:TileInfo = new TileInfo(id, collisionType, drillCost, graphicId, staminaCost, parentId, autoTiling, visible);
 		addEntry(info);
 	}
 	

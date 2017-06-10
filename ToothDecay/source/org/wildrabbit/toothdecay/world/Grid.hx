@@ -147,19 +147,19 @@ class Grid extends FlxTilemap
 	
 	private function setupTileTable():Void
 	{
-		tileTable.emplaceEntry(TileType.Gap, FlxObject.NONE, 0, 0,0, -1);
+		tileTable.emplaceEntry(TileType.Gap, FlxObject.NONE, 0, 0,0, -1, false, false);
 		tileTable.emplaceEntry(TileType.Enamel, FlxObject.ANY, 1, 1,0, -1, true);
 		tileTable.emplaceEntry(TileType.Dentine, FlxObject.ANY, 1, 17,0, -1, true);
 		tileTable.emplaceEntry(TileType.Cementum, FlxObject.ANY, 1, 33,0,-1, true);
 		tileTable.emplaceEntry(TileType.Pulp, FlxObject.ANY, 1, 49,0,-1, true);
 		tileTable.emplaceEntry(TileType.Filling, FlxObject.ANY,5, 65,10, -1);
-		tileTable.emplaceEntry(TileType.EnamelTransform, FlxObject.NONE,0, 0,0, TileType.Enamel);
-		tileTable.emplaceEntry(TileType.DentineTransform, FlxObject.NONE, 0,0, 0, TileType.Dentine);
-		tileTable.emplaceEntry(TileType.CementumTransform, FlxObject.NONE,0, 0,0, TileType.Cementum);
-		tileTable.emplaceEntry(TileType.PulpTransform, FlxObject.NONE,0, 0, 0,TileType.Pulp);
-		tileTable.emplaceEntry(TileType.FillingTransform, FlxObject.NONE,0, 0,0, TileType.Filling);
+		tileTable.emplaceEntry(TileType.EnamelTransform, FlxObject.NONE,0, 67,0, TileType.Enamel, false, false);
+		tileTable.emplaceEntry(TileType.DentineTransform, FlxObject.NONE, 0,68, 0, TileType.Dentine, false, false);
+		tileTable.emplaceEntry(TileType.CementumTransform, FlxObject.NONE,0, 69,0, TileType.Cementum, false, false);
+		tileTable.emplaceEntry(TileType.PulpTransform, FlxObject.NONE,0, 70, 0,TileType.Pulp, false, false);
+		tileTable.emplaceEntry(TileType.FillingTransform, FlxObject.NONE,0, 71,0, TileType.Filling, false, false);
 		tileTable.emplaceEntry(TileType.Nerve, FlxObject.ANY, 1,66,0, -1);
-		tileTable.emplaceEntry(TileType.NerveTransform, FlxObject.NONE, 1,0,0, TileType.Nerve);
+		tileTable.emplaceEntry(TileType.NerveTransform, FlxObject.NONE, 1,72,0, TileType.Nerve, false, false);
 	}
 	
 	public function drillTile(row:Int, col:Int, strength:Float = 1):Int
@@ -259,7 +259,7 @@ class Grid extends FlxTilemap
 		nextLabel = 0;
 		
 		var tileValue:Int = -1;
-		
+		var tileInfo:TileInfo = null;
 		// First pass
 		for (row in 0...heightInTiles)
 		{
@@ -268,7 +268,8 @@ class Grid extends FlxTilemap
 			{
 				idx = rowIdx + col;
 				tileValue = resolveType(_data[idx]);
-				if (tileValue == TileType.Gap || tileValue == TileType.Filling) continue;
+				tileInfo = tileTable.getInfo(tileValue);
+				if (!tileInfo.visible) continue;
 				
 				// Test north:
 				var northVal:Int = TileType.Gap;
@@ -352,7 +353,8 @@ class Grid extends FlxTilemap
 		{
 			idx = rowIdx + col;
 			tileValue = resolveType(_data[idx]);
-			if (tileValue == TileType.Gap) continue;
+			tileInfo = tileTable.getInfo(tileValue);
+			if (!tileInfo.visible) continue;
 				
 			if (clusters.exists(labels[idx]))
 			{
@@ -368,13 +370,15 @@ class Grid extends FlxTilemap
 			{
 				idx = rowIdx + col;
 				tileValue = resolveType(_data[idx]);
-				if (tileValue == TileType.Gap || !clusters.exists(labels[idx]) || clusters[labels[idx]].connected) continue;
+				tileInfo = tileTable.getInfo(tileValue);
+				if (!tileInfo.visible || !clusters.exists(labels[idx]) || clusters[labels[idx]].connected) continue;
 				
 				cluster = clusters[labels[idx]];
 				var belowLabel:Int = labels[idx + widthInTiles];
 				var belowTile:Int = resolveType(_data[idx + widthInTiles]);
+				var belowInfo:TileInfo = tileTable.getInfo(belowTile);
 				var predicate = function (pickup:Pickup):Bool { return pickup.tileRow == row + 1 && pickup.tileCol == col; };
-				if ((belowTile == TileType.Gap && pickups.filter(predicate).length == 0)|| !clusters.exists(belowLabel) || !clusters[belowLabel].connected) continue;
+				if ((!belowInfo.visible && pickups.filter(predicate).length == 0)|| !clusters.exists(belowLabel) || !clusters[belowLabel].connected) continue;
 				cluster.connected = true;
 			}
 			row--;		
@@ -501,7 +505,8 @@ class Grid extends FlxTilemap
 		
 		for (i in 0...length)
 		{
-			_tileObjects[i] = new FlxTile(this, i, _tileWidth, _tileHeight, (customTileRemap[i] >= _drawIndex), (i >= _collideIndex) ? allowCollisions : FlxObject.NONE);
+			var tileInfo:TileInfo = tileTable.getInfo(resolveType(customTileRemap[i]));
+			_tileObjects[i] = new FlxTile(this, i, _tileWidth, _tileHeight, tileInfo.visible, (i >= _collideIndex) ? allowCollisions : FlxObject.NONE);
 		}
 		// Create debug tiles for rendering bounding boxes on demand
 		#if FLX_DEBUG

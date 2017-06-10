@@ -39,11 +39,12 @@ class TileInfo
 	public var drillCost:Int = 0;
 	public var staminaCost:Int = 0;
 	public var parentId:Int = 0;
+	public var visible:Bool = false;
 	public var transformationConfigs:Map<TileTransformType, TransformStateConfig> = new Map<TileTransformType, TransformStateConfig>();
 		
-	public function new(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0, ParentId:Int = -1, AutoTile:Bool = false) 
+	public function new(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0, ParentId:Int = -1, AutoTile:Bool = false, Visible:Bool = true) 
 	{
-		set(Id, CollisionType, DrillCost, GraphicId, StaminaCost, ParentId, AutoTile);
+		set(Id, CollisionType, DrillCost, GraphicId, StaminaCost, ParentId, AutoTile, Visible);
 		trace('id: $id, gid: $graphicId');
 	}	
 	
@@ -60,7 +61,7 @@ class TileInfo
 		return null;
 	}
 	
-	public function set(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0,  ParentId:Int = -1, AutoTile:Bool = false):Void
+	public function set(Id:Int, CollisionType:Int, DrillCost:Int, GraphicId:Int = -1, StaminaCost:Int = 0,  ParentId:Int = -1, AutoTile:Bool = false, Visible:Bool = true):Void
 	{
 		id = Id;
 		collisionType = CollisionType;
@@ -69,6 +70,7 @@ class TileInfo
 		parentId = ParentId;
 		graphicId = id;
 		autoTiling = AutoTile;
+		visible = Visible;
 
 		if (GraphicId >= 0)
 			graphicId = GraphicId;

@@ -7,9 +7,14 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.graphics.FlxGraphic;
+import flixel.graphics.frames.FlxFramesCollection;
+import flixel.graphics.frames.FlxTileFrames;
 import flixel.group.FlxGroup;
 import flixel.group.FlxSpriteGroup;
+import flixel.math.FlxPoint;
 import flixel.math.FlxRandom;
+import flixel.math.FlxRect;
 import flixel.text.FlxText;
 import flixel.tile.FlxTilemap;
 import flixel.tweens.FlxEase;
@@ -36,6 +41,7 @@ class PlayState extends FlxState
 {
 	
 	private static inline var BORDER_WIDTH:Float = 112;
+	
 	var oldGrid:Grid;
 	var currentGrid:Grid;
 	var gridIdx:Int;
@@ -64,7 +70,9 @@ class PlayState extends FlxState
 	var gridCamera:FlxCamera;
 	var hudCamera:FlxCamera;
 	
+	var staminaBG:FlxSprite;
 	var stamina:FlxText;
+	var distanceBG:FlxSprite;
 	var distance:FlxText;
 	
 	var gameRandom:FlxRandom = new FlxRandom();
@@ -183,18 +191,25 @@ class PlayState extends FlxState
 		r2.facing = FlxObject.RIGHT;		
 		//right.makeGraphic(BORDER_WIDTH, Std.int(currentGrid.height), FlxColor.BLACK);
 		
-		stamina = new FlxText(BORDER_WIDTH + currentGrid.width, 10, 140, 'Sugar: ${Std.int(player.stamina)}', 14);
-		stamina.color = FlxColor.WHITE;
+		var frames:FlxFramesCollection = FlxTileFrames.fromRectangle(AssetPaths.counters__png, FlxPoint.weak(128, 40), FlxRect.weak(0, 0, 256, 40));
 		
-		distance = new FlxText(BORDER_WIDTH + currentGrid.width, 40, 140, 'Dist.: ${Std.int(Reg.distance)}microns', 12);
-		distance.color = FlxColor.WHITE;
+		staminaBG = new FlxSprite(BORDER_WIDTH + currentGrid.width, 10, frames.getByIndex(1).paint());
+		stamina = new FlxText(BORDER_WIDTH + currentGrid.width , 24, 76, '${Std.int(player.stamina)}', 14);
+		stamina.alignment = FlxTextAlign.RIGHT;
+		stamina.color = FlxColor.fromRGB(0x22,0x03,0x25);
 		
+		distanceBG = new FlxSprite(BORDER_WIDTH + currentGrid.width, 56, frames.getByIndex(0).paint());
+		distance = new FlxText(BORDER_WIDTH + currentGrid.width, 70, 76, '${Std.int(Reg.distance)}', 14);
+		distance.color = FlxColor.fromRGB(0x22,0x03,0x25);
+		distance.alignment = FlxTextAlign.RIGHT;
 		
 		hudGroup.add(l2);
 		hudGroup.add(left);
 		hudGroup.add(r2);
 		hudGroup.add(right);
+		hudGroup.add(staminaBG);
 		hudGroup.add(stamina);
+		hudGroup.add(distanceBG);
 		hudGroup.add(distance);
 
 		gridCamera = new FlxCamera(BORDER_WIDTH, 0, Std.int(currentGrid.width), FlxG.height, 1);
@@ -282,19 +297,12 @@ class PlayState extends FlxState
 		
 
 		
-		if (player.alive)
-		{
-			if (player.won)
-				stamina.text = "WON! :D";
-			else 
-				stamina.text = 'Sugar: ${Std.int(player.stamina)}';
-		}
-		else {
-			stamina.text = "DEAD! >_<";
-		}
-		
+		var ratio:Float = player.stamina / player.initialStamina;
+		stamina.text = '${Std.int(player.stamina)}';
+		stamina.color = ratio > 0.2 ? FlxColor.fromRGB(0x22, 0x03, 0x25) : FlxColor.fromRGB(0xc0, 0x16, 0x2c);
+
 		Reg.distance = player.tileRow * 5;
-		distance.text = 'Distance: ${Std.int(Reg.distance)} microns';
+		distance.text = '${Std.int(Reg.distance)}';
 	}
 	
 	private function setGroupCamera(group:FlxGroup, cam:FlxCamera):Void 

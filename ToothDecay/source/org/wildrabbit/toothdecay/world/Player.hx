@@ -38,6 +38,7 @@ class Player extends Entity
 	private var drillStart:Float = -1;
 	
 	public var won:Bool = false;
+	public var depletingStamina:Bool = false;
 	
 	public function setGrid(leGrid:Grid, row:Int, col:Int):Void
 	{
@@ -75,14 +76,12 @@ class Player extends Entity
 
 		velocity.set();
 		
-		FlxG.watch.add(this, "tileRow");
-		FlxG.watch.add(this, "tileCol");
-		
 		facing = FlxObject.NONE;
 		setFacingFlip(FlxObject.LEFT, true, false);
 		setFacingFlip(FlxObject.RIGHT, false, false);
 		
 		stamina = initialStamina;
+		depletingStamina = false;
 
 		setTile(startRow, startCol);
 		centerToTile();
@@ -112,6 +111,16 @@ class Player extends Entity
 		}
 	}
 	
+	public function checkStaminaDepletion(input:GameInput):Void
+	{
+		if (depletingStamina) return;
+		
+		if (input.drill || Math.abs(input.xValue) > FlxMath.EPSILON || Math.abs(input.yValue) > FlxMath.EPSILON)
+		{
+			//depletingStamina = true;
+		}
+	}
+	
 	
 	
 	override public function update(dt:Float):Void
@@ -120,6 +129,8 @@ class Player extends Entity
 		
 		
 		var input:GameInput = parent.getMainInput();
+		checkStaminaDepletion(input);
+		
 		var drilling:Bool = input.drill;
 		var now:Float = Date.now().getTime();
 		var staminaCost:Float = 0;
@@ -260,14 +271,17 @@ class Player extends Entity
 			}			
 		}
 		
-		staminaCost += dt * staminaDepletionRate;
-		
-		stamina -= staminaCost;
-		if (stamina <= 0)
+		if (depletingStamina)
 		{
-			stamina = 0;
-			alive = false;
-			deadSignal.dispatch(this);
+			staminaCost += dt * staminaDepletionRate;
+			
+			stamina -= staminaCost;
+			if (stamina <= 0)
+			{
+				stamina = 0;
+				alive = false;
+				deadSignal.dispatch(this);
+			}
 		}
 	}
 
